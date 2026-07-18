@@ -1,45 +1,44 @@
-﻿// Licensed under the MIT license. See LICENSE file in the project root for full license information.
-
-using Microsoft.Data.SqlClient;
-using SqlServerFlowSdk.Core;
-using SqlServerFlowSdk.Exceptions;
+﻿using Npgsql;
+using SqlFlowSdk.Core;
+using SqlFlowSdk.Exceptions;
 using System.Data;
+using System.Data.Common;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
-namespace SqlServerFlowSdk.Database;
+namespace SqlFlowSdk.Database;
 
 /// <summary>
 /// Encapsulates all raw database interactions. It is used to perform all the necessary operations on the database to 
-/// manage queues, tasks, checkpoints, and events in the SqlServerFlow system using SQL Server.
+/// manage queues, tasks, checkpoints, and events in the SqlFlow system using PostgreSQL.
 /// </summary>
-public class SqlServerFlowDatabase
+public class PostgresFlowDatabase : ISqlFlowDatabase
 {
-    public async Task CreateQueueAsync(SqlConnection conn, string queueName, CancellationToken cancellationToken)
+    public async Task CreateQueueAsync(DbConnection conn, string queueName, CancellationToken cancellationToken)
     {
-        using SqlCommand cmd = new("ssf.create_queue", conn) { CommandType = CommandType.StoredProcedure };
+        using NpgsqlCommand cmd = new("CALL ssf.create_queue(@p_queue_name, 'unpartitioned')", (NpgsqlConnection)conn);
 
         AddParam(cmd, "@p_queue_name", queueName);
 
         await cmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
     }
 
-    public async Task DropQueueAsync(SqlConnection conn, string queueName, CancellationToken cancellationToken)
+    public async Task DropQueueAsync(DbConnection conn, string queueName, CancellationToken cancellationToken)
     {
-        using SqlCommand cmd = new("ssf.drop_queue", conn) { CommandType = CommandType.StoredProcedure };
+        using NpgsqlCommand cmd = new("CALL ssf.drop_queue(@p_queue_name)", (NpgsqlConnection)conn);
 
         AddParam(cmd, "@p_queue_name", queueName);
 
         await cmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
     }
 
-    public async Task<IEnumerable<string>> ListQueuesAsync(SqlConnection conn, CancellationToken cancellationToken)
+    public async Task<IEnumerable<string>> ListQueuesAsync(DbConnection conn, CancellationToken cancellationToken)
     {
         List<string> results = new();
 
-        using SqlCommand cmd = new("SELECT queue_name FROM ssf.queues ORDER BY queue_name", conn);
+        using NpgsqlCommand cmd = new("SELECT queue_name FROM ssf.queues ORDER BY queue_name", (NpgsqlConnection)conn);
 
-        using SqlDataReader reader = await cmd.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+        using NpgsqlDataReader reader = await cmd.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
 
         while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
         {
@@ -48,16 +47,18 @@ public class SqlServerFlowDatabase
         return results;
     }
 
-    public async Task<SpawnResult> SpawnTaskAsync(SqlConnection conn, string queue, string taskName, string paramsJson, string optionsJson, CancellationToken cancellationToken)
+    public async Task<SpawnResult> SpawnTaskAsync(DbConnection conn, string queue, string taskName, string paramsJson, string optionsJson, CancellationToken cancellationToken)
     {
-        using SqlCommand cmd = new("ssf.spawn_task", conn) { CommandType = CommandType.StoredProcedure };
+        // We cast parameters to jsonb inside the SQL string so PostgreSQL parses the text correctly
+        string sql = "SELECT task_id, run_id, attempt FROM ssf.spawn_task(@p_queue_name, @p_task_name, @p_params::jsonb, @p_options::jsonb)";
+        using NpgsqlCommand cmd = new(sql, (NpgsqlConnection)conn);
 
         AddParam(cmd, "@p_queue_name", queue);
         AddParam(cmd, "@p_task_name", taskName);
         AddParam(cmd, "@p_params", paramsJson);
         AddParam(cmd, "@p_options", optionsJson);
 
-        using SqlDataReader reader = await cmd.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+        using NpgsqlDataReader reader = await cmd.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
 
         if (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
         {
@@ -71,9 +72,9 @@ public class SqlServerFlowDatabase
         throw new Exception("Failed to spawn task");
     }
 
-    public async Task CancelTaskAsync(SqlConnection conn, string queue, string taskId, CancellationToken cancellationToken)
+    public async Task CancelTaskAsync(DbConnection conn, string queue, string taskId, CancellationToken cancellationToken)
     {
-        using SqlCommand cmd = new("ssf.cancel_task", conn) { CommandType = CommandType.StoredProcedure };
+        using NpgsqlCommand cmd = new("CALL ssf.cancel_task(@p_queue_name, @p_task_id)", (NpgsqlConnection)conn);
 
         AddParam(cmd, "@p_queue_name", queue);
         AddParam(cmd, "@p_task_id", Guid.Parse(taskId));
@@ -81,9 +82,9 @@ public class SqlServerFlowDatabase
         await cmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
     }
 
-    public async Task EmitEventAsync(SqlConnection conn, string queue, string eventName, string payloadJson, CancellationToken cancellationToken)
+    public async Task EmitEventAsync(DbConnection conn, string queue, string eventName, string payloadJson, CancellationToken cancellationToken)
     {
-        using SqlCommand cmd = new("ssf.emit_event", conn) { CommandType = CommandType.StoredProcedure };
+        using NpgsqlCommand cmd = new("CALL ssf.emit_event(@p_queue_name, @p_event_name, @p_payload)", (NpgsqlConnection)conn);
 
         AddParam(cmd, "@p_queue_name", queue);
         AddParam(cmd, "@p_event_name", eventName);
@@ -92,18 +93,21 @@ public class SqlServerFlowDatabase
         await cmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
     }
 
-    public async Task<IEnumerable<ClaimedTask>> ClaimTasksAsync(SqlConnection conn, string queue, string workerId, int timeout, int count, CancellationToken cancellationToken)
+    public async Task<IEnumerable<ClaimedTask>> ClaimTasksAsync(DbConnection conn, string queue, string workerId, int timeout, int count, CancellationToken cancellationToken)
     {
         List<ClaimedTask> tasks = new();
 
-        using SqlCommand cmd = new("ssf.claim_task", conn) { CommandType = CommandType.StoredProcedure };
+        string sql = "SELECT run_id, task_id, attempt, task_name, params, retry_strategy, max_attempts, headers, wake_event, event_payload " +
+                     "FROM ssf.claim_task(@p_queue_name, @p_worker_id, @p_claim_timeout, @p_qty)";
+
+        using NpgsqlCommand cmd = new(sql, (NpgsqlConnection)conn);
 
         AddParam(cmd, "@p_queue_name", queue);
         AddParam(cmd, "@p_worker_id", workerId);
         AddParam(cmd, "@p_claim_timeout", timeout);
         AddParam(cmd, "@p_qty", count);
 
-        using SqlDataReader reader = await cmd.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+        using NpgsqlDataReader reader = await cmd.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
 
         while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
         {
@@ -125,9 +129,9 @@ public class SqlServerFlowDatabase
         return tasks;
     }
 
-    public async Task CompleteRunAsync(SqlConnection conn, string queue, string runId, string resultJson, CancellationToken cancellationToken)
+    public async Task CompleteRunAsync(DbConnection conn, string queue, string runId, string resultJson, CancellationToken cancellationToken)
     {
-        using SqlCommand cmd = new("ssf.complete_run", conn) { CommandType = CommandType.StoredProcedure };
+        using NpgsqlCommand cmd = new("CALL ssf.complete_run(@p_queue_name, @p_run_id, @p_state)", (NpgsqlConnection)conn);
 
         AddParam(cmd, "@p_queue_name", queue);
         AddParam(cmd, "@p_run_id", Guid.Parse(runId));
@@ -136,29 +140,31 @@ public class SqlServerFlowDatabase
         await cmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
     }
 
-    public async Task FailRunAsync(SqlConnection conn, string queue, string runId, string errorJson, CancellationToken cancellationToken)
+    public async Task FailRunAsync(DbConnection conn, string queue, string runId, string errorJson, CancellationToken cancellationToken)
     {
-        using SqlCommand cmd = new("ssf.fail_run", conn) { CommandType = CommandType.StoredProcedure };
+        using NpgsqlCommand cmd = new("CALL ssf.fail_run(@p_queue_name, @p_run_id, @p_reason::jsonb, @p_retry_at)", (NpgsqlConnection)conn);
 
         AddParam(cmd, "@p_queue_name", queue);
         AddParam(cmd, "@p_run_id", Guid.Parse(runId));
         AddParam(cmd, "@p_reason", errorJson);
-        AddParam(cmd, "@p_retry_at", DBNull.Value); // Kann optional als DateTimeOffset übergeben werden
+        AddParam(cmd, "@p_retry_at", DBNull.Value); // Kann optional als UTC DateTime übergeben werden
 
         await cmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
     }
 
-    public async Task<IEnumerable<CheckpointRow>> GetCheckpointStatesAsync(SqlConnection conn, string queue, string taskId, string runId, CancellationToken cancellationToken)
+    public async Task<IEnumerable<CheckpointRow>> GetCheckpointStatesAsync(DbConnection conn, string queue, string taskId, string runId, CancellationToken cancellationToken)
     {
         List<CheckpointRow> rows = new();
 
-        using SqlCommand cmd = new("ssf.get_task_checkpoint_states", conn) { CommandType = CommandType.StoredProcedure };
+        string sql = "SELECT checkpoint_name, state, status, owner_run_id, updated_at " +
+                     "FROM ssf.get_task_checkpoint_states(@p_queue_name, @p_task_id, @p_run_id)";
+        using NpgsqlCommand cmd = new(sql, (NpgsqlConnection)conn);
 
         AddParam(cmd, "@p_queue_name", queue);
         AddParam(cmd, "@p_task_id", Guid.Parse(taskId));
         AddParam(cmd, "@p_run_id", Guid.Parse(runId));
 
-        using SqlDataReader reader = await cmd.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+        using NpgsqlDataReader reader = await cmd.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
 
         while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
         {
@@ -168,23 +174,25 @@ public class SqlServerFlowDatabase
                 State = ParseJson(reader, 1),
                 Status = reader.GetString(2),
                 OwnerRunId = reader.IsDBNull(3) ? null : reader.GetGuid(3).ToString(),
-                UpdatedAt = reader.GetDateTimeOffset(4).UtcDateTime
+                UpdatedAt = reader.GetDateTime(4).ToUniversalTime()
             });
         }
 
         return rows;
     }
 
-    public async Task<JsonNode?> GetSingleCheckpointAsync(SqlConnection conn, string queue, string taskId, string checkpointName, CancellationToken cancellationToken)
+    public async Task<JsonNode?> GetSingleCheckpointAsync(DbConnection conn, string queue, string taskId, string checkpointName, CancellationToken cancellationToken)
     {
-        using SqlCommand cmd = new("ssf.get_task_checkpoint_state", conn) { CommandType = CommandType.StoredProcedure };
+        string sql = "SELECT checkpoint_name, state, status, owner_run_id, updated_at " +
+                     "FROM ssf.get_task_checkpoint_state(@p_queue_name, @p_task_id, @p_step_name, @p_include_pending)";
+        using NpgsqlCommand cmd = new(sql, (NpgsqlConnection)conn);
 
         AddParam(cmd, "@p_queue_name", queue);
         AddParam(cmd, "@p_task_id", Guid.Parse(taskId));
         AddParam(cmd, "@p_step_name", checkpointName);
         AddParam(cmd, "@p_include_pending", 0);
 
-        using SqlDataReader reader = await cmd.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+        using NpgsqlDataReader reader = await cmd.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
 
         if (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
         {
@@ -194,11 +202,11 @@ public class SqlServerFlowDatabase
         return null;
     }
 
-    public async Task PersistCheckpointAsync(SqlConnection conn, string queue, string taskId, string runId, string checkpointName, string stateJson, int timeout, CancellationToken cancellationToken)
+    public async Task PersistCheckpointAsync(DbConnection conn, string queue, string taskId, string runId, string checkpointName, string stateJson, int timeout, CancellationToken cancellationToken)
     {
         await ExecuteWithCancelCheckAsync(async (ct) =>
         {
-            using SqlCommand cmd = new("ssf.set_task_checkpoint_state", conn) { CommandType = CommandType.StoredProcedure };
+            using NpgsqlCommand cmd = new("CALL ssf.set_task_checkpoint_state(@p_queue_name, @p_task_id, @p_step_name, @p_state, @p_owner_run, @p_extend_claim_by)", (NpgsqlConnection)conn);
 
             AddParam(cmd, "@p_queue_name", queue);
             AddParam(cmd, "@p_task_id", Guid.Parse(taskId));
@@ -211,22 +219,23 @@ public class SqlServerFlowDatabase
         }, cancellationToken);
     }
 
-    public async Task ScheduleRunAsync(SqlConnection conn, string queue, string runId, DateTime wakeAt, CancellationToken cancellationToken)
+    public async Task ScheduleRunAsync(DbConnection conn, string queue, string runId, DateTime wakeAt, CancellationToken cancellationToken)
     {
-        using SqlCommand cmd = new("ssf.schedule_run", conn) { CommandType = CommandType.StoredProcedure };
+        using NpgsqlCommand cmd = new("CALL ssf.schedule_run(@p_queue_name, @p_run_id, @p_wake_at)", (NpgsqlConnection)conn);
 
         AddParam(cmd, "@p_queue_name", queue);
         AddParam(cmd, "@p_run_id", Guid.Parse(runId));
-        AddParam(cmd, "@p_wake_at", new DateTimeOffset(wakeAt, TimeSpan.Zero));
+        // Postgres TIMESTAMPTZ expects DateTime with Kind UTC
+        AddParam(cmd, "@p_wake_at", wakeAt.Kind == DateTimeKind.Utc ? wakeAt : wakeAt.ToUniversalTime());
 
         await cmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
     }
 
-    public async Task HeartbeatAsync(SqlConnection conn, string queue, string runId, int seconds, CancellationToken cancellationToken)
+    public async Task HeartbeatAsync(DbConnection conn, string queue, string runId, int seconds, CancellationToken cancellationToken)
     {
         await ExecuteWithCancelCheckAsync(async (ct) =>
         {
-            using SqlCommand cmd = new("ssf.extend_claim", conn) { CommandType = CommandType.StoredProcedure };
+            using NpgsqlCommand cmd = new("CALL ssf.extend_claim(@p_queue_name, @p_run_id, @p_extend_by)", (NpgsqlConnection)conn);
 
             AddParam(cmd, "@p_queue_name", queue);
             AddParam(cmd, "@p_run_id", Guid.Parse(runId));
@@ -236,11 +245,13 @@ public class SqlServerFlowDatabase
         }, cancellationToken);
     }
 
-    public async Task<(bool ShouldSuspend, JsonNode? Payload)> AwaitEventAsync(SqlConnection conn, string queue, string taskId, string runId, string checkpointName, string eventName, int? timeout, CancellationToken cancellationToken)
+    public async Task<(bool ShouldSuspend, JsonNode? Payload)> AwaitEventAsync(DbConnection conn, string queue, string taskId, string runId, string checkpointName, string eventName, int? timeout, CancellationToken cancellationToken)
     {
         return await ExecuteWithCancelCheckAsync(async (ct) =>
         {
-            using SqlCommand cmd = new("ssf.await_event", conn) { CommandType = CommandType.StoredProcedure };
+            string sql = "SELECT should_suspend, payload " +
+                         "FROM ssf.await_event(@p_queue_name, @p_task_id, @p_run_id, @p_step_name, @p_event_name, @p_timeout)";
+            using NpgsqlCommand cmd = new(sql, (NpgsqlConnection)conn);
 
             AddParam(cmd, "@p_queue_name", queue);
             AddParam(cmd, "@p_task_id", Guid.Parse(taskId));
@@ -249,7 +260,7 @@ public class SqlServerFlowDatabase
             AddParam(cmd, "@p_event_name", eventName);
             AddParam(cmd, "@p_timeout", timeout);
 
-            using SqlDataReader reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+            using NpgsqlDataReader reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
 
             if (await reader.ReadAsync(ct).ConfigureAwait(false))
             {
@@ -263,7 +274,7 @@ public class SqlServerFlowDatabase
         }, cancellationToken);
     }
 
-    private static JsonNode? ParseJson(SqlDataReader reader, int ordinal)
+    private static JsonNode? ParseJson(NpgsqlDataReader reader, int ordinal)
     {
         if (reader.IsDBNull(ordinal))
         {
@@ -279,15 +290,14 @@ public class SqlServerFlowDatabase
         {
             return await action(ct).ConfigureAwait(false);
         }
-        catch (SqlException ex) when (ex.Number == 50011)
+        catch (PostgresException ex) when (ex.SqlState == "50011")
         {
             throw new CancelledTaskException();
         }
     }
 
-    private void AddParam(SqlCommand cmd, string name, object? value)
+    private void AddParam(NpgsqlCommand cmd, string name, object? value)
     {
         cmd.Parameters.AddWithValue(name, value ?? DBNull.Value);
     }
 }
-

@@ -1,10 +1,10 @@
 ﻿// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
 using SqlFlowSdk.Core;
 using SqlFlowSdk.Database;
 using SqlFlowSdk.Exceptions;
+using System.Data.Common;
 using System.Text.Json;
 
 namespace SqlFlowSdk;
@@ -19,14 +19,15 @@ namespace SqlFlowSdk;
 public class SqlFlow : ISqlFlow, IDisposable, IAsyncDisposable
 {
     private readonly ILogger _logger;
-    private readonly SqlFlowDatabase _db = new SqlFlowDatabase();
-    private readonly string _connectionString;
+    private readonly DbDataSource _dataSource;
+    private readonly ISqlFlowDatabase _db;
     private readonly Dictionary<string, RegisteredTask> _registry;
 
-    public SqlFlow(ILogger<SqlFlow> logger, string connectionString)
+    public SqlFlow(ILogger<SqlFlow> logger, DbDataSource dataSource, ISqlFlowDatabase db)
     {
         _logger = logger;
-        _connectionString = connectionString ?? throw new ArgumentNullException(nameof(connectionString));
+        _dataSource = dataSource;
+        _db = db;
         _registry = new Dictionary<string, RegisteredTask>();
     }
 
@@ -55,7 +56,8 @@ public class SqlFlow : ISqlFlow, IDisposable, IAsyncDisposable
     /// </summary>
     public async Task CreateQueueAsync(string queueName, CancellationToken cancellationToken)
     {
-        await using SqlConnection conn = new SqlConnection(_connectionString);
+        await using DbConnection conn = await _dataSource.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
+
         await conn.OpenAsync(cancellationToken).ConfigureAwait(false);
 
         await _db.CreateQueueAsync(conn, queueName, cancellationToken).ConfigureAwait(false);
@@ -67,7 +69,8 @@ public class SqlFlow : ISqlFlow, IDisposable, IAsyncDisposable
     /// </summary>
     public async Task DropQueueAsync(string queueName, CancellationToken cancellationToken)
     {
-        await using SqlConnection conn = new SqlConnection(_connectionString);
+        await using DbConnection conn = await _dataSource.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
+
         await conn.OpenAsync(cancellationToken).ConfigureAwait(false);
 
         await _db.DropQueueAsync(conn, queueName, cancellationToken).ConfigureAwait(false);
@@ -79,7 +82,8 @@ public class SqlFlow : ISqlFlow, IDisposable, IAsyncDisposable
     /// </summary>
     public async Task<IEnumerable<string>> ListQueuesAsync(CancellationToken cancellationToken)
     {
-        await using SqlConnection conn = new SqlConnection(_connectionString);
+        await using DbConnection conn = await _dataSource.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
+
         await conn.OpenAsync(cancellationToken).ConfigureAwait(false);
 
         return await _db.ListQueuesAsync(conn, cancellationToken).ConfigureAwait(false);
@@ -105,7 +109,8 @@ public class SqlFlow : ISqlFlow, IDisposable, IAsyncDisposable
         if (options.RetryStrategy != null) normOptions["retry_strategy"] = options.RetryStrategy;
         if (cancellation != null) normOptions["cancellation"] = cancellation;
 
-        await using SqlConnection conn = new SqlConnection(_connectionString);
+        await using DbConnection conn = await _dataSource.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
+
         await conn.OpenAsync(cancellationToken).ConfigureAwait(false);
 
         return await _db.SpawnTaskAsync(
@@ -130,7 +135,8 @@ public class SqlFlow : ISqlFlow, IDisposable, IAsyncDisposable
             throw new Exception("eventName required");
         }
 
-        await using SqlConnection conn = new SqlConnection(_connectionString);
+        await using DbConnection conn = await _dataSource.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
+
         await conn.OpenAsync(cancellationToken).ConfigureAwait(false);
 
         await _db.EmitEventAsync(conn, options.Queue, eventName, JsonSerializer.Serialize(payload), cancellationToken).ConfigureAwait(false);
@@ -143,7 +149,8 @@ public class SqlFlow : ISqlFlow, IDisposable, IAsyncDisposable
     /// </summary>
     public async Task CancelTaskAsync(CancelTaskOptions options, string taskId, CancellationToken cancellationToken)
     {
-        await using SqlConnection conn = new SqlConnection(_connectionString);
+        await using DbConnection conn = await _dataSource.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
+
         await conn.OpenAsync(cancellationToken).ConfigureAwait(false);
 
         await _db.CancelTaskAsync(conn, options.Queue, taskId, cancellationToken).ConfigureAwait(false);
@@ -160,7 +167,7 @@ public class SqlFlow : ISqlFlow, IDisposable, IAsyncDisposable
             throw new ArgumentException("Queue must be specified for claiming tasks");
         }
 
-        await using SqlConnection conn = new SqlConnection(_connectionString);
+        await using DbConnection conn = await _dataSource.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
         await conn.OpenAsync(cancellationToken).ConfigureAwait(false);
 
         return await _db.ClaimTasksAsync(conn, queue, workerId, claimTimeout, batchSize, cancellationToken).ConfigureAwait(false);
@@ -200,7 +207,8 @@ public class SqlFlow : ISqlFlow, IDisposable, IAsyncDisposable
                 }
             }, TaskScheduler.Default);
 
-        await using SqlConnection conn = new SqlConnection(_connectionString);
+        await using DbConnection conn = await _dataSource.OpenConnectionAsync(stoppingToken).ConfigureAwait(false);
+
         await conn.OpenAsync(stoppingToken).ConfigureAwait(false);
 
         try

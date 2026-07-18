@@ -4,6 +4,7 @@ using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
 using SqlFlowSdk.Database;
 using SqlFlowSdk.Exceptions;
+using System.Data.Common;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
@@ -23,7 +24,6 @@ public delegate Task<object> TaskHandler(TaskContext ctx, JsonNode? parameters, 
 /// </summary>
 public class TaskContext
 {
-    private readonly SqlFlowDatabase _db = new SqlFlowDatabase();
     private readonly Dictionary<string, int> _stepNameCounter = new();
     private readonly ILogger _logger;
 
@@ -31,7 +31,9 @@ public class TaskContext
 
     public CancellationToken CancellationToken { get; }
 
-    private readonly SqlConnection _connection;
+    private readonly DbConnection _connection;
+    private readonly ISqlFlowDatabase _db;
+
     private readonly string _queueName;
     private readonly ClaimedTask _task;
     private readonly Dictionary<string, JsonNode?> _checkpointCache;
@@ -40,7 +42,8 @@ public class TaskContext
     private TaskContext(
         ILogger logger,
         string taskId,
-        SqlConnection con,
+        DbConnection con,
+        ISqlFlowDatabase db,
         string queueName,
         ClaimedTask task,
         Dictionary<string, JsonNode?> checkpointCache,
@@ -53,6 +56,7 @@ public class TaskContext
         CancellationToken = cancellationToken;
 
         _connection = con;
+        _db = db;
         _queueName = queueName;
         _task = task;
         _checkpointCache = checkpointCache;
@@ -63,14 +67,13 @@ public class TaskContext
     public static async Task<TaskContext> CreateAsync(
         ILogger logger,
         string taskId,
-        SqlConnection con,
+        DbConnection con,
+        ISqlFlowDatabase db,
         string queueName,
         ClaimedTask task,
         int claimTimeout,
         CancellationToken cancellationToken)
     {
-        SqlFlowDatabase db = new SqlFlowDatabase();
-
         IEnumerable<CheckpointRow> checkpoints = await db.GetCheckpointStatesAsync(con, queueName, task.TaskId, task.RunId, cancellationToken).ConfigureAwait(false);
 
         Dictionary<string, JsonNode?> cache = new Dictionary<string, JsonNode?>();
@@ -80,7 +83,7 @@ public class TaskContext
             cache[cp.CheckpointName] = cp.State;
         }
 
-        return new TaskContext(logger, taskId, con, queueName, task, cache, claimTimeout, cancellationToken);
+        return new TaskContext(logger, taskId, con, db, queueName, task, cache, claimTimeout, cancellationToken);
     }
 
     public async Task<T> Step<T>(string name, Func<Task<T>> fn)
