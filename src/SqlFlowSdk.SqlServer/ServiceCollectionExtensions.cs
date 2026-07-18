@@ -3,6 +3,7 @@
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.DependencyInjection;
 using SqlFlowSdk.Database;
+using SqlFlowSdk.SqlServer.Database;
 using System.Data.Common;
 
 namespace SqlFlowSdk.Extensions;

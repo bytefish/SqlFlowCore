@@ -19,15 +19,17 @@
 		<Version>1.0.2</Version>
 		<IncludeSource>True</IncludeSource>
 		<IncludeSymbols>True</IncludeSymbols>
-		<SignAssembly>True</SignAssembly>
-		<AssemblyOriginatorKeyFile>SqlServerFlowSdk.snk</AssemblyOriginatorKeyFile>
+		
 		<TreatWarningsAsErrors>true</TreatWarningsAsErrors>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 	</PropertyGroup>
 
 	<ItemGroup>
 		<PackageReference Include="Microsoft.Data.SqlClient" />
-		<PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <ProjectReference Include="..\SqlFlowSdk\SqlFlowSdk.csproj" />
 	</ItemGroup>
 
 </Project>

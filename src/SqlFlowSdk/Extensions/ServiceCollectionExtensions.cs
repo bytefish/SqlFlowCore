@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using SqlFlowSdk.Core;
+using SqlFlowSdk.Database;
 using SqlFlowSdk.Workers;
 
 namespace SqlFlowSdk.Extensions;
@@ -53,15 +54,6 @@ public static class ServiceCollectionExtensions
 
     public static IServiceCollection AddSqlFlowSdk(this IServiceCollection services, string connectionString)
     {
-        // Register the SqlFlow Client as a Singleton since it manages its own
-        // connection pooling (via ADO.NET) and is thread-safe.
-        services.AddSingleton<ISqlFlow>(sp =>
-        {
-            var logger = sp.GetRequiredService<ILogger<SqlFlow>>();
-
-            return new SqlFlow(logger, connectionString);
-        });
-
         // Register Publish Abstraction
         services.AddTransient<IEventPublisher, SqlFlowEventPublisher>();
 

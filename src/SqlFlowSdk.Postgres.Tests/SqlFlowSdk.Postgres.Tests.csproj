@@ -11,6 +11,7 @@
 
 	<ItemGroup>
 		<None Remove="appsettings.json" />
+		<None Remove="Resources\sql\ssf-postgres.sql" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -19,6 +20,9 @@
 			<ExcludeFromSingleFile>true</ExcludeFromSingleFile>
 			<CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
 		</Content>
+		<Content Include="Resources\sql\ssf-postgres.sql">
+		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</Content>
 	</ItemGroup>
 
 	<ItemGroup>
@@ -26,7 +30,7 @@
 		<PackageReference Include="MSTest.TestAdapter" />
 		<PackageReference Include="MSTest.TestFramework" />
 		<PackageReference Include="Testcontainers" />
-		<PackageReference Include="Testcontainers.MsSql" />
+		<PackageReference Include="Testcontainers.PostgreSql"  />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -34,17 +38,8 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<Folder Include="Resources\sql\" />
-	</ItemGroup>
-
-	<ItemGroup>
-		<Content Include="..\..\sql\ssf.sql" Link="Resources\sql\ssf.sql">
-			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-		</Content>
-	</ItemGroup>
-
-	<ItemGroup>
-		<ProjectReference Include="..\SqlServerFlowSdk\SqlFlowSdk.csproj" />
+	  <ProjectReference Include="..\SqlFlowSdk.Postgres\SqlFlowSdk.Postgres.csproj" />
+	  <ProjectReference Include="..\SqlFlowSdk\SqlFlowSdk.csproj" />
 	</ItemGroup>
 
 </Project>
