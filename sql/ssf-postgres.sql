@@ -3,7 +3,7 @@ CREATE SCHEMA IF NOT EXISTS ssf;
 -- ==========================================
 -- FUNCTIONS & HELPERS
 -- ==========================================
-CREATE OR ALTER FUNCTION ssf.current_time_fn()
+CREATE OR REPLACE FUNCTION ssf.current_time_fn()
 RETURNS TIMESTAMPTZ
 LANGUAGE plpgsql
 AS $$
@@ -24,7 +24,7 @@ BEGIN
 END;
 $$;
 
-CREATE OR ALTER FUNCTION ssf.validate_queue_name(p_queue_name TEXT)
+CREATE OR REPLACE FUNCTION ssf.validate_queue_name(p_queue_name TEXT)
 RETURNS VARCHAR(57)
 LANGUAGE plpgsql
 AS $$
@@ -41,7 +41,7 @@ BEGIN
 END;
 $$;
 
-CREATE OR ALTER FUNCTION ssf.get_schema_version()
+CREATE OR REPLACE FUNCTION ssf.get_schema_version()
 RETURNS VARCHAR(50)
 LANGUAGE plpgsql
 AS $$
@@ -268,7 +268,7 @@ BEGIN
         IF v_existing_task_id IS NOT NULL THEN
             RETURN QUERY SELECT v_existing_task_id, v_existing_run_id, v_existing_attempt, FALSE;
             RETURN;
-        END END IF;
+        END IF;
     ELSE
         INSERT INTO ssf.tasks (queue_name, task_id, task_name, params, headers, retry_strategy, max_attempts, cancellation, enqueue_at, state, attempts, last_attempt_run)
         VALUES (p_queue_name, v_task_id, p_task_name, p_params, v_headers, v_retry_strategy, v_max_attempts, v_cancellation, v_now, 'pending', v_attempt, v_run_id);

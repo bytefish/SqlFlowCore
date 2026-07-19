@@ -8,10 +8,7 @@ namespace SqlFlowSdk.SqlServer.Tests
     public class DockerContainers
     {
         public static MsSqlContainer SqlServerContainer = new MsSqlBuilder("mcr.microsoft.com/mssql/server:2022-latest")
-            .WithName("sqlserver")
             .WithPassword("P@ssw0rd123!")
-            .WithBindMount(Path.Combine(AppContext.BaseDirectory, "Resources\\sql\\ssf-sqlserver.sql"), "/var/opt/mssql/scripts/ssf-sqlserver.sql")
-            .WithPortBinding(1433, 1433)
             .WithLogger(ConsoleLogger.Instance)
             .Build();
 

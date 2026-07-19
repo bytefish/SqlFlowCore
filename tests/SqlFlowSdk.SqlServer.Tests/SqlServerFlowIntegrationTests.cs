@@ -1,9 +1,10 @@
 ﻿// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
+using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging.Abstractions;
-using Npgsql;
 using SqlFlowSdk.Core;
 using SqlFlowSdk.Database;
+using SqlFlowSdk.SqlServer.Database;
 using SqlFlowSdk.Workers;
 using System.Data.Common;
 
@@ -33,9 +34,9 @@ public class PostgresFlowIntegrationTests
     {
         // ARRANGE
 
-        await using DbDataSource dataSource = NpgsqlDataSource.Create(ConnectionString);
+        await using DbDataSource dataSource = SqlClientFactory.Instance.CreateDataSource(ConnectionString);
 
-        ISqlFlowDatabase db = new PostgresFlowDatabase();
+        ISqlFlowDatabase db = new SqlServerFlowDatabase();
 
         ISqlFlow client = new SqlFlow(NullLogger<SqlFlow>.Instance, dataSource, db);
 

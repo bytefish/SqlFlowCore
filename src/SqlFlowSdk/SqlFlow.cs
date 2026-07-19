@@ -58,8 +58,6 @@ public class SqlFlow : ISqlFlow, IDisposable, IAsyncDisposable
     {
         await using DbConnection conn = await _dataSource.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
 
-        await conn.OpenAsync(cancellationToken).ConfigureAwait(false);
-
         await _db.CreateQueueAsync(conn, queueName, cancellationToken).ConfigureAwait(false);
     }
 
@@ -71,8 +69,6 @@ public class SqlFlow : ISqlFlow, IDisposable, IAsyncDisposable
     {
         await using DbConnection conn = await _dataSource.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
 
-        await conn.OpenAsync(cancellationToken).ConfigureAwait(false);
-
         await _db.DropQueueAsync(conn, queueName, cancellationToken).ConfigureAwait(false);
     }
 
@@ -83,8 +79,6 @@ public class SqlFlow : ISqlFlow, IDisposable, IAsyncDisposable
     public async Task<IEnumerable<string>> ListQueuesAsync(CancellationToken cancellationToken)
     {
         await using DbConnection conn = await _dataSource.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
-
-        await conn.OpenAsync(cancellationToken).ConfigureAwait(false);
 
         return await _db.ListQueuesAsync(conn, cancellationToken).ConfigureAwait(false);
     }
@@ -111,8 +105,6 @@ public class SqlFlow : ISqlFlow, IDisposable, IAsyncDisposable
 
         await using DbConnection conn = await _dataSource.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
 
-        await conn.OpenAsync(cancellationToken).ConfigureAwait(false);
-
         return await _db.SpawnTaskAsync(
             conn,
             options.Queue,
@@ -137,8 +129,6 @@ public class SqlFlow : ISqlFlow, IDisposable, IAsyncDisposable
 
         await using DbConnection conn = await _dataSource.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
 
-        await conn.OpenAsync(cancellationToken).ConfigureAwait(false);
-
         await _db.EmitEventAsync(conn, options.Queue, eventName, JsonSerializer.Serialize(payload), cancellationToken).ConfigureAwait(false);
     }
 
@@ -150,8 +140,6 @@ public class SqlFlow : ISqlFlow, IDisposable, IAsyncDisposable
     public async Task CancelTaskAsync(CancelTaskOptions options, string taskId, CancellationToken cancellationToken)
     {
         await using DbConnection conn = await _dataSource.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
-
-        await conn.OpenAsync(cancellationToken).ConfigureAwait(false);
 
         await _db.CancelTaskAsync(conn, options.Queue, taskId, cancellationToken).ConfigureAwait(false);
     }
@@ -168,7 +156,6 @@ public class SqlFlow : ISqlFlow, IDisposable, IAsyncDisposable
         }
 
         await using DbConnection conn = await _dataSource.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
-        await conn.OpenAsync(cancellationToken).ConfigureAwait(false);
 
         return await _db.ClaimTasksAsync(conn, queue, workerId, claimTimeout, batchSize, cancellationToken).ConfigureAwait(false);
     }
@@ -208,8 +195,6 @@ public class SqlFlow : ISqlFlow, IDisposable, IAsyncDisposable
             }, TaskScheduler.Default);
 
         await using DbConnection conn = await _dataSource.OpenConnectionAsync(stoppingToken).ConfigureAwait(false);
-
-        await conn.OpenAsync(stoppingToken).ConfigureAwait(false);
 
         try
         {

@@ -11,7 +11,6 @@
 
 	<ItemGroup>
 		<None Remove="appsettings.json" />
-		<None Remove="Resources\sql\ssf-postgres.sql" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -20,9 +19,12 @@
 			<ExcludeFromSingleFile>true</ExcludeFromSingleFile>
 			<CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
 		</Content>
-		<Content Include="Resources\sql\ssf-postgres.sql">
-		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-		</Content>
+	</ItemGroup>
+
+	<ItemGroup>
+	  <None Include="..\..\sql\ssf-postgres.sql" Link="Resources\sql\ssf-postgres.sql">
+	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	  </None>
 	</ItemGroup>
 
 	<ItemGroup>
