@@ -56,6 +56,7 @@ public static class ServiceCollectionExtensions
     {
         // Register Publish Abstraction
         services.AddTransient<IEventPublisher, SqlFlowEventPublisher>();
+        services.AddTransient<ISqlFlow, SqlFlow>();
 
         return services;
     }

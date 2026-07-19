@@ -9,16 +9,8 @@ namespace SqlFlowSdk.AiSample.Docker
 {
     public static class DockerContainers
     {
-        public static INetwork ServicesNetwork = new NetworkBuilder()
-                .WithName("services")
-                .WithDriver(NetworkDriver.Bridge)
-                .Build();
-
         public static PostgreSqlContainer PostgresContainer = new PostgreSqlBuilder("postgres:18")
-            .WithName("postgres")
-            .WithNetwork(ServicesNetwork)
-            // Mount Postgres Configuration and SQL Scripts 
-            .WithBindMount(Path.Combine(Directory.GetCurrentDirectory(), "Resources/docker/postgres.conf"), "/usr/local/etc/postgres/postgres.conf")
+            // Mount SQL Scripts 
             .WithBindMount(Path.Combine(Directory.GetCurrentDirectory(), "Resources/sql/ssf-postgres.sql"), "/docker-entrypoint-initdb.d/1-ssf-postgres.sql")
             // Set Username and Password
             .WithUsername("postgres")

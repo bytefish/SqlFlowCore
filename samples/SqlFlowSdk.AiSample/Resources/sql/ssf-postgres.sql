@@ -3,7 +3,7 @@ CREATE SCHEMA IF NOT EXISTS ssf;
 -- ==========================================
 -- FUNCTIONS & HELPERS
 -- ==========================================
-CREATE OR ALTER FUNCTION ssf.current_time_fn()
+CREATE OR REPLACE FUNCTION ssf.current_time_fn()
 RETURNS TIMESTAMPTZ
 LANGUAGE plpgsql
 AS $$
@@ -24,7 +24,7 @@ BEGIN
 END;
 $$;
 
-CREATE OR ALTER FUNCTION ssf.validate_queue_name(p_queue_name TEXT)
+CREATE OR REPLACE FUNCTION ssf.validate_queue_name(p_queue_name TEXT)
 RETURNS VARCHAR(57)
 LANGUAGE plpgsql
 AS $$
@@ -41,7 +41,7 @@ BEGIN
 END;
 $$;
 
-CREATE OR ALTER FUNCTION ssf.get_schema_version()
+CREATE OR REPLACE FUNCTION ssf.get_schema_version()
 RETURNS VARCHAR(50)
 LANGUAGE plpgsql
 AS $$
@@ -268,7 +268,7 @@ BEGIN
         IF v_existing_task_id IS NOT NULL THEN
             RETURN QUERY SELECT v_existing_task_id, v_existing_run_id, v_existing_attempt, FALSE;
             RETURN;
-        END END IF;
+        END IF;
     ELSE
         INSERT INTO ssf.tasks (queue_name, task_id, task_name, params, headers, retry_strategy, max_attempts, cancellation, enqueue_at, state, attempts, last_attempt_run)
         VALUES (p_queue_name, v_task_id, p_task_name, p_params, v_headers, v_retry_strategy, v_max_attempts, v_cancellation, v_now, 'pending', v_attempt, v_run_id);
@@ -598,7 +598,7 @@ BEGIN
     FROM ssf.checkpoints c
     LEFT JOIN ssf.runs r ON r.queue_name = c.queue_name AND r.run_id = c.owner_run_id
     WHERE c.queue_name = p_queue_name AND c.task_id = p_task_id AND c.checkpoint_name = p_step_name
-    FOR UPDATE;
+    FOR UPDATE OF c;
 
     IF v_existing_owner IS NULL OR v_existing_attempt IS NULL OR v_new_attempt >= v_existing_attempt THEN
         INSERT INTO ssf.checkpoints (queue_name, task_id, checkpoint_name, state, status, owner_run_id, updated_at)
@@ -773,7 +773,7 @@ BEGIN
     IF v_run_state IS NULL THEN RAISE EXCEPTION 'Run not found' USING ERRCODE = '50014'; END IF;
     IF v_task_state = 'cancelled' THEN RAISE EXCEPTION 'Task cancelled' USING ERRCODE = '50011'; END IF;
 
-    SELECT payload INTO v_event_payload FROM ssf.events WHERE queue_name = p_queue_name AND event_name = p_event_name;
+    SELECT e.payload INTO v_event_payload FROM ssf.events e WHERE e.queue_name = p_queue_name AND e.event_name = p_event_name;
 
     IF v_existing_payload IS NOT NULL THEN
         UPDATE ssf.runs SET event_payload = NULL WHERE queue_name = p_queue_name AND run_id = p_run_id;
