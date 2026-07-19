@@ -30,16 +30,16 @@
 		<PackageReference Include="MSTest.TestAdapter" />
 		<PackageReference Include="MSTest.TestFramework" />
 		<PackageReference Include="Testcontainers" />
-		<PackageReference Include="Testcontainers.PostgreSql"  />
+		<PackageReference Include="Testcontainers.PostgreSql" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <ProjectReference Include="..\..\src\SqlFlowSdk.Postgres\SqlFlowSdk.Postgres.csproj" />
+	  <ProjectReference Include="..\..\src\SqlFlowSdk\SqlFlowSdk.csproj" />
 	</ItemGroup>
 
 	<ItemGroup>
 		<Using Include="Microsoft.VisualStudio.TestTools.UnitTesting" />
-	</ItemGroup>
-
-	<ItemGroup>
-	  <ProjectReference Include="..\SqlFlowSdk.Postgres\SqlFlowSdk.Postgres.csproj" />
-	  <ProjectReference Include="..\SqlFlowSdk\SqlFlowSdk.csproj" />
 	</ItemGroup>
 
 </Project>

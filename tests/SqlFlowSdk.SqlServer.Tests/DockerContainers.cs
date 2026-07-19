@@ -3,7 +3,7 @@
 using DotNet.Testcontainers;
 using Testcontainers.MsSql;
 
-namespace SqlServerFlowSdk.Tests.Docker
+namespace SqlFlowSdk.SqlServer.Tests
 {
     public class DockerContainers
     {

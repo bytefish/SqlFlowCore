@@ -10,10 +10,12 @@
     <File Path="../README.md" />
   </Folder>
   <Folder Name="/src/">
-    <Project Path="src/SqlFlowSdk.Postgres.Tests/SqlFlowSdk.Postgres.Tests.csproj" />
     <Project Path="src/SqlFlowSdk.Postgres/SqlFlowSdk.Postgres.csproj" />
-    <Project Path="src/SqlFlowSdk.SqlServer.Tests/SqlFlowSdk.SqlServer.Tests.csproj" />
     <Project Path="src/SqlFlowSdk.SqlServer/SqlFlowSdk.SqlServer.csproj" />
     <Project Path="src/SqlFlowSdk/SqlFlowSdk.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/SqlFlowSdk.Postgres.Tests/SqlFlowSdk.Postgres.Tests.csproj" />
+    <Project Path="tests/SqlFlowSdk.SqlServer.Tests/SqlFlowSdk.SqlServer.Tests.csproj" />
   </Folder>
 </Solution>

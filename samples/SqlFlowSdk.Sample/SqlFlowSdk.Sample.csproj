@@ -10,21 +10,12 @@
 
 	<ItemGroup>
 		<PackageReference Include="Testcontainers" />
-		<PackageReference Include="Testcontainers.MsSql" />
+		<PackageReference Include="Testcontainers.PostgreSql" />
 	</ItemGroup>
 
 	<ItemGroup>
-		<Folder Include="Resources\sql\" />
-	</ItemGroup>
-
-	<ItemGroup>
-		<Content Include="..\..\sql\ssf.sql" Link="Resources\sql\ssf.sql">
-			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-		</Content>
-	</ItemGroup>
-
-	<ItemGroup>
-	  <ProjectReference Include="..\SqlServerFlowSdk\SqlServerFlowSdk.csproj" />
+	  <ProjectReference Include="..\..\src\SqlFlowSdk.Postgres\SqlFlowSdk.Postgres.csproj" />
+	  <ProjectReference Include="..\..\src\SqlFlowSdk\SqlFlowSdk.csproj" />
 	</ItemGroup>
 
 </Project>

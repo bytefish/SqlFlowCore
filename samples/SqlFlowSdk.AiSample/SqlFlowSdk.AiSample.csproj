@@ -8,19 +8,14 @@
     <UserSecretsId>2cac1474-8b8b-4ab0-95c9-e5117001c1d1</UserSecretsId>
   </PropertyGroup>
 
-  <ItemGroup>
-    <Content Include="..\..\sql\ssf.sql" Link="Resources\sql\ssf.sql">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\SqlServerFlowSdk\SqlFlowSdk.csproj" />
-  </ItemGroup>
-
 	<ItemGroup>
 		<PackageReference Include="Testcontainers" />
-		<PackageReference Include="Testcontainers.MsSql" />
+		<PackageReference Include="Testcontainers.PostgreSql" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <ProjectReference Include="..\..\src\SqlFlowSdk.Postgres\SqlFlowSdk.Postgres.csproj" />
+	  <ProjectReference Include="..\..\src\SqlFlowSdk\SqlFlowSdk.csproj" />
 	</ItemGroup>
 
 </Project>

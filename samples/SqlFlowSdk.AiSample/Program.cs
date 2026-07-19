@@ -1,20 +1,20 @@
 ﻿// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-using SqlServerFlowSdk;
-using SqlServerFlowSdk.AiSample;
-using SqlServerFlowSdk.AiSample.Docker;
-using SqlServerFlowSdk.AiSample.Models;
-using SqlServerFlowSdk.AiSample.Services;
-using SqlServerFlowSdk.Core;
-using SqlServerFlowSdk.Extensions;
+using SqlFlowSdk.Core;
+using SqlFlowSdk.Extensions;
 using Microsoft.AspNetCore.Mvc;
+using SqlFlowSdk;
+using SqlFlowSdk.AiSample.Docker;
+using SqlFlowSdk.AiSample.Services;
+using SqlFlowSdk.AiSample;
+using SqlFlowSdk.AiSample.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Start Docker Containers for dependencies
 await DockerContainers.StartAllContainersAsync();
 
-string connectionString = DockerContainers.SqlServerContainer.GetConnectionString();
+string connectionString = DockerContainers.PostgresContainer.GetConnectionString();
 
 // Add Logging
 builder.Services.AddLogging(loggingBuilder => loggingBuilder.AddConsole());
@@ -23,13 +23,14 @@ builder.Services.AddSingleton<ILlmService, LlmService>();
 builder.Services.AddSingleton<IGitHubService, GitHubService>();
 builder.Services.AddSingleton<ILocalNotificationService, LocalNotificationService>();
 
-// Register the SqlServerFlow SDK
-builder.Services.AddSqlServerFlowSdk(connectionString);
+// Register the SqlFlow SDK
+builder.Services.AddSqlFlowSdk();
+builder.Services.AddSqlFlowPostgres(connectionString);
 
 // Configure Workers and Jobs. In this example, we have a queue for AI agents that process tasks related to bug fixing. The
 // worker is configured to handle one task at a time and poll for new tasks every second. The job "solve-bug" is defined
 // with a maximum of 3 attempts for each task.
-builder.Services.AddSqlServerFlowWorker("ai-agent-queue", worker =>
+builder.Services.AddSqlFlowWorker("ai-agent-queue", worker =>
 {
     worker
         .SetConcurrency(1)

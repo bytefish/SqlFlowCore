@@ -1,11 +1,11 @@
 ﻿// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-using SqlServerFlowSdk.Core;
-using SqlServerFlowSdk.Sample.Models;
-using SqlServerFlowSdk.Sample.Services;
+using SqlFlowSdk.Sample.Models;
+using SqlFlowSdk.Sample.Services;
+using SqlFlowSdk.Core;
 using System.Text.Json.Nodes;
 
-namespace SqlServerFlowSdk.Sample.Jobs;
+namespace SqlFlowSdk.Sample.Jobs;
 
 public class FulfillOrderJob : IJob<OrderData, FulfillOrderResult>
 {

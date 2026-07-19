@@ -6,7 +6,7 @@
 		<Nullable>enable</Nullable>
 		<Company />
 		<Product />
-		<Description>A .NET SDK for the SqlServerFlow Workflow System.</Description>
+		<Description>An SQL Server SDK for the SqlFlow Workflow System.</Description>
 		<PackageTags>SqlServerFlow, workflows</PackageTags>
 		<RepositoryUrl>https://github.com/bytefish/SqlServerFlow.NET</RepositoryUrl>
 		<PackageProjectUrl>https://github.com/bytefish/SqlServerFlow.NET</PackageProjectUrl>

@@ -2,7 +2,7 @@
 
 using System.Text.Json.Serialization;
 
-namespace SqlServerFlowSdk.AiSample.Models;
+namespace SqlFlowSdk.AiSample.Models;
 
 public class Issue 
 {

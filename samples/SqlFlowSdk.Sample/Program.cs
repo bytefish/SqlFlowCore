@@ -1,19 +1,19 @@
 ﻿// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-using SqlServerFlowSdk.Sample.Jobs;
-using SqlServerFlowSdk.Sample.Models;
-using SqlServerFlowSdk.Sample.Services;
 using Microsoft.AspNetCore.Mvc;
-using SqlServerFlowSdk.Extensions;
-using SqlServerFlowSdk.Sample.Docker;
-using SqlServerFlowSdk.Core;
+using SqlFlowSdk.Extensions;
+using SqlFlowSdk.Core;
+using SqlFlowSdk.Sample.Models;
+using SqlFlowSdk.Sample.Services;
+using SqlFlowSdk.Sample.Docker;
+using SqlFlowSdk.Sample.Jobs;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Start Docker Containers for dependencies
 await DockerContainers.StartAllContainersAsync();
 
-string connectionString = DockerContainers.SqlServerContainer.GetConnectionString();
+string connectionString = DockerContainers.PostgresContainer.GetConnectionString();
 
 // Add Logging
 builder.Services.AddLogging();
@@ -24,11 +24,12 @@ builder.Services.AddSingleton<ShippingService>();
 builder.Services.AddSingleton<OrderService>();
 
 // Register the SqlServerFlow SDK
-builder.Services.AddSqlServerFlowSdk(connectionString);
+builder.Services.AddSqlFlowSdk();
+builder.Services.AddSqlFlowPostgres(connectionString);
 
 // Configure Workers and Jobs. In this example, we have two different queues
 // for standard and VIP orders, each with its own processing configuration.
-builder.Services.AddSqlServerFlowWorker("standard-orders-queue", worker =>
+builder.Services.AddSqlFlowWorker("standard-orders-queue", worker =>
 {
     worker
         .SetConcurrency(1)
@@ -40,7 +41,7 @@ builder.Services.AddSqlServerFlowWorker("standard-orders-queue", worker =>
     });
 });
 
-builder.Services.AddSqlServerFlowWorker("vip-orders-queue", worker =>
+builder.Services.AddSqlFlowWorker("vip-orders-queue", worker =>
 {
     worker
         .SetConcurrency(5)

@@ -52,7 +52,7 @@ public static class ServiceCollectionExtensions
         return services;
     }
 
-    public static IServiceCollection AddSqlFlowSdk(this IServiceCollection services, string connectionString)
+    public static IServiceCollection AddSqlFlowSdk(this IServiceCollection services)
     {
         // Register Publish Abstraction
         services.AddTransient<IEventPublisher, SqlFlowEventPublisher>();

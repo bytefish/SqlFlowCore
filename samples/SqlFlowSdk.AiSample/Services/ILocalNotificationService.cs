@@ -2,7 +2,7 @@
 
 using System.Text;
 
-namespace SqlServerFlowSdk.AiSample.Services
+namespace SqlFlowSdk.AiSample.Services
 {
     public interface ILocalNotificationService
     {

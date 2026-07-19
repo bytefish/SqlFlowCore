@@ -1,13 +1,11 @@
 ﻿// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-using DotNet.Testcontainers;
 using DotNet.Testcontainers.Builders;
 using DotNet.Testcontainers.Configurations;
 using DotNet.Testcontainers.Networks;
-using Testcontainers.MsSql;
 using Testcontainers.PostgreSql;
 
-namespace SqlServerFlowSdk.Tests.Docker
+namespace SqlFlowSdk.Postgres.Tests
 {
     public static class DockerContainers
     {

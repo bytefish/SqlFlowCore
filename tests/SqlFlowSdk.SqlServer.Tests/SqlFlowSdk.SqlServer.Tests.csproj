@@ -34,12 +34,12 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<Using Include="Microsoft.VisualStudio.TestTools.UnitTesting" />
+	  <ProjectReference Include="..\..\src\SqlFlowSdk.Postgres\SqlFlowSdk.Postgres.csproj" />
+	  <ProjectReference Include="..\..\src\SqlFlowSdk\SqlFlowSdk.csproj" />
 	</ItemGroup>
 
 	<ItemGroup>
-	  <ProjectReference Include="..\SqlFlowSdk.SqlServer\SqlFlowSdk.SqlServer.csproj" />
-	  <ProjectReference Include="..\SqlFlowSdk\SqlFlowSdk.csproj" />
+		<Using Include="Microsoft.VisualStudio.TestTools.UnitTesting" />
 	</ItemGroup>
 
 </Project>

@@ -1,14 +1,16 @@
 ﻿// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 using Microsoft.Extensions.Logging.Abstractions;
-using SqlServerFlowSdk.Core;
-using SqlServerFlowSdk.Tests.Docker;
-using SqlServerFlowSdk.Workers;
+using Npgsql;
+using SqlFlowSdk.Core;
+using SqlFlowSdk.Database;
+using SqlFlowSdk.Workers;
+using System.Data.Common;
 
-namespace SqlServerFlowSdk.Sample;
+namespace SqlFlowSdk.SqlServer.Tests;
 
 [TestClass]
-public class SqlServerFlowIntegrationTests
+public class PostgresFlowIntegrationTests
 {
     private static string ConnectionString = null!;
 
@@ -22,7 +24,7 @@ public class SqlServerFlowIntegrationTests
     {
         await DockerContainers.StartAllContainersAsync();
 
-        // Updated to use the SqlServerContainer from the new DockerContainers setup
+        // Updated to use the PostgresContainer from the DockerContainers setup
         ConnectionString = DockerContainers.SqlServerContainer.GetConnectionString();
     }
 
@@ -31,8 +33,11 @@ public class SqlServerFlowIntegrationTests
     {
         // ARRANGE
 
-        // Build the SqlServerFlow Client directly with the ConnectionString
-        ISqlFlow client = new SqlServerFlow(NullLogger<SqlServerFlow>.Instance, ConnectionString);
+        await using DbDataSource dataSource = NpgsqlDataSource.Create(ConnectionString);
+
+        ISqlFlowDatabase db = new PostgresFlowDatabase();
+
+        ISqlFlow client = new SqlFlow(NullLogger<SqlFlow>.Instance, dataSource, db);
 
         // We use a TCS to signal when the background worker has actually finished the task
         var completionSource = new TaskCompletionSource<int>();
@@ -63,9 +68,11 @@ public class SqlServerFlowIntegrationTests
         });
 
         // ACT
+
         await client.SpawnAsync(new SpawnOptions { Queue = "test-queue" }, "add-numbers", new { a = 10, b = 20 }, default);
 
-        SqlServerFlowWorker worker = new SqlServerFlowWorker(new WorkerOptions
+        // 4. Worker exakt nach deiner Konstruktor-Signatur instanziieren
+        SqlFlowWorker worker = new SqlFlowWorker(new WorkerOptions
         {
             Queue = "test-queue",
             PollInterval = 0.1, // Fast polling for tests

@@ -1,32 +1,38 @@
 ﻿// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-using DotNet.Testcontainers;
-using Testcontainers.MsSql;
+using DotNet.Testcontainers.Builders;
+using DotNet.Testcontainers.Configurations;
+using DotNet.Testcontainers.Networks;
+using Testcontainers.PostgreSql;
 
-namespace SqlServerFlowSdk.Sample.Docker
+namespace SqlFlowSdk.Sample.Docker
 {
-    public class DockerContainers
+    public static class DockerContainers
     {
-        public static MsSqlContainer SqlServerContainer = new MsSqlBuilder("mcr.microsoft.com/mssql/server:2022-latest")
-            .WithName("sqlserver")
-            .WithPassword("P@ssw0rd123!")
-            .WithBindMount(Path.Combine(AppContext.BaseDirectory, "Resources\\sql\\ssf.sql"), "/var/opt/mssql/scripts/ssf.sql")
-            .WithPortBinding(1433, 1433)
-            .WithLogger(ConsoleLogger.Instance)
+        public static INetwork ServicesNetwork = new NetworkBuilder()
+                .WithName("services")
+                .WithDriver(NetworkDriver.Bridge)
+                .Build();
+
+        public static PostgreSqlContainer PostgresContainer = new PostgreSqlBuilder("postgres:18")
+            .WithName("postgres")
+            .WithNetwork(ServicesNetwork)
+            // Mount Postgres Configuration and SQL Scripts 
+            .WithBindMount(Path.Combine(Directory.GetCurrentDirectory(), "Resources/docker/postgres.conf"), "/usr/local/etc/postgres/postgres.conf")
+            .WithBindMount(Path.Combine(Directory.GetCurrentDirectory(), "Resources/sql/ssf-postgres.sql"), "/docker-entrypoint-initdb.d/1-ssf-postgres.sql")
+            // Set Username and Password
+            .WithUsername("postgres")
+            .WithPassword("password")
             .Build();
 
         public static async Task StartAllContainersAsync()
         {
-            await SqlServerContainer.StartAsync();
-
-            string scriptContent = await File.ReadAllTextAsync(Path.Combine(AppContext.BaseDirectory, "Resources\\sql\\ssf.sql"));
-
-            await SqlServerContainer.ExecScriptAsync(scriptContent);
+            await PostgresContainer.StartAsync();
         }
 
         public static async Task StopAllContainersAsync()
         {
-            await SqlServerContainer.StopAsync();
+            await PostgresContainer.StopAsync();
         }
     }
 }

@@ -215,7 +215,7 @@ public class SqlFlow : ISqlFlow, IDisposable, IAsyncDisposable
         {
             RegisteredTask? registration = _registry.ContainsKey(task.TaskName) ? _registry[task.TaskName] : null;
 
-            TaskContext ctx = await TaskContext.CreateAsync(_logger, task.TaskId, conn, queue, task, claimTimeout, linkedCts.Token).ConfigureAwait(false);
+            TaskContext ctx = await TaskContext.CreateAsync(_logger, task.TaskId, conn, _db, queue, task, claimTimeout, linkedCts.Token).ConfigureAwait(false);
 
             if (registration == null)
             {

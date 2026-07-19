@@ -1,8 +1,8 @@
 ﻿// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-using SqlServerFlowSdk.AiSample.Models;
+using SqlFlowSdk.AiSample.Models;
 
-namespace SqlServerFlowSdk.AiSample.Services;
+namespace SqlFlowSdk.AiSample.Services;
 
 public interface IGitHubService
 {

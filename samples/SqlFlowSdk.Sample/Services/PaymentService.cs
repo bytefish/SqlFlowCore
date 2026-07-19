@@ -1,8 +1,8 @@
 ﻿// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-using SqlServerFlowSdk.Sample.Models;
+using SqlFlowSdk.Sample.Models;
 
-namespace SqlServerFlowSdk.Sample.Services;
+namespace SqlFlowSdk.Sample.Services;
 
 public class PaymentService
 {

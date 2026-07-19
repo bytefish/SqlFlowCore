@@ -1,11 +1,11 @@
 ﻿// Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
-using SqlServerFlowSdk.AiSample.Models;
-using SqlServerFlowSdk.AiSample.Services;
-using SqlServerFlowSdk.Core;
+using SqlFlowSdk.AiSample.Models;
+using SqlFlowSdk.AiSample.Services;
+using SqlFlowSdk.Core;
 using System.Text.Json.Nodes;
 
-namespace SqlServerFlowSdk.AiSample;
+namespace SqlFlowSdk.AiSample;
 
 public class AutonomousAgentJob : IJob<AgentTask, AgentResult>
 {
